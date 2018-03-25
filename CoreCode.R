@@ -98,6 +98,44 @@ print("hi")
 
 #asdfasdf
 
+#' K trajectories
+#' @param S Matrix of asset prices. Assumed that each column name is the name of the asset in that column.
+#' @param Params List of parameters from fitted GARCH(1, 1) models for each asset. (COR, DF, MU, SIGMA).
+#' @param k Natural number, number of timesteps ahead to forecast asset values.
+#' @param pct_return Boolean, TRUE = give returns as percentage of current value, FALSE = actual change in stock value.
+#' @return Vector containing the forcasted returns. Either as a percentage or current value or simply change in price of stock.
+k_trajectories <- function(S, params, k, pct_return = FALSE){
+  
+  #Number of timesteps in data, number of assets
+  final_timestep = dim(S)[1]
+  n_assets = dim(S)[2]
+  
+  #Generate model errors from MVN, convert to student t scale
+  z_k = rmvnorm(k, rep(0, n_assets), params$COR)
+  z_k_t = studentize(z_k, df = params$df)
+  
+  #Estimates for percentage change in value at each of the k forcasted time steps,
+  y_k = params$mu + z_k_t * params$sigma
+  
+  #Calculate aggregate percentage change over k timesteps
+  if(k == 1){
+    pct_change = exp(y_k)
+  }else{
+    pct_change = apply(exp(y_k), 2, prod)
+  }
+  
+  #Calculate actual forcasted value
+  S_k = pct_change * S[final_timestep,]
+  
+  returns = S_k - S[final_timestep,]
+  
+  if (pct_return == TRUE){
+    pct_returns = returns/S[final_timestep,]
+    return(pct_returns)
+  }else{
+    return(returns)
+  }
+}
 
 
 
