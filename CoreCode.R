@@ -104,33 +104,35 @@ print("hi")
 #' @param k Natural number, number of timesteps ahead to forecast asset values.
 #' @param pct_return Boolean, TRUE = give returns as percentage of current value, FALSE = actual change in stock value.
 #' @return Vector containing the forcasted returns. Either as a percentage or current value or simply change in price of stock.
-k_trajectories <- function(S, params, k, pct_return = FALSE){
+k_trajectories <- function(S, params, k, as_percentage = FALSE){
   
   #Number of timesteps in data, number of assets
   final_timestep = dim(S)[1]
   n_assets = dim(S)[2]
+  asset_names = colnames(S)
   
   #Generate model errors from MVN, convert to student t scale
-  z_k = rmvnorm(k, rep(0, n_assets), params$COR)
-  z_k_t = studentize(z_k, df = params$df)
+  z_k = rmvnorm(k, rep(0, n_assets), params$COR[asset_names, asset_names])
+  z_k_t = studentize(z_k, df = params$df[asset_names])
   
-  #Estimates for percentage change in value at each of the k forcasted time steps,
-  y_k = params$mu + z_k_t * params$sigma
+  #Estimates for change in value at each of the k forcasted time steps,
+  #as the log of the ratio of the last given value in time series
+  y_k = params$mu[asset_names] + z_k_t * params$sigma[asset_names]
   
-  #Calculate aggregate percentage change over k timesteps
+  #Calculate ratio of final to last given value over k timesteps
   if(k == 1){
-    pct_change = exp(y_k)
+    return_ratio = exp(y_k)
   }else{
-    pct_change = apply(exp(y_k), 2, prod)
+    return_ratio = apply(exp(y_k), 2, prod)
   }
   
   #Calculate actual forcasted value
-  S_k = pct_change * S[final_timestep,]
-  
+  S_k = return_ratio * S[final_timestep,]
   returns = S_k - S[final_timestep,]
   
-  if (pct_return == TRUE){
-    pct_returns = returns/S[final_timestep,]
+  if (as_percentage == TRUE){
+    pct_returns = return_ratio - 1
+    print(pct_returns)
     return(pct_returns)
   }else{
     return(returns)
