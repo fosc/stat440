@@ -6,6 +6,9 @@ S<- as.matrix(subset(snp500, select = - c(Date, VIX)))
 
 Y <- diff(log(S))
 
+#' fitGarch
+#' @param LogDiff Matrix of daily log differences in asset prices.
+#' @return List of the following parameters fit to a garch model: df, mu, sigma, and X (the residuals)
 fitGarch <- function(LogDiff){
   
   resids <- function(LogDiff){
@@ -29,7 +32,9 @@ fitGarch <- function(LogDiff){
   
 } 
 
-
+#' normalize
+#' @param x Matrix of student t residuals
+#' @return Matrix of corresponding normal residuals
 normalize <- function(x){
   df = tail(x,1)[[1]]
   n = length(x)
@@ -40,10 +45,9 @@ normalize <- function(x){
   return(z)
 }
 
-Z = apply(t(X),1,normalize)
-COR = cor(Z)
-
-
+#' getParams
+#' @param Y Matrix of daily log differences in asset prices.
+#' @return List of parameters of GARCH GC model: COR, df, mu, sigma, COV
 getParams <- function(Y){
   GARCH = fitGarch(Y)
   Z = apply(t(GARCH$X),1,normalize)
@@ -60,6 +64,12 @@ params = getParams(Y)
 # we need k of them. Lets pretend k=10
 options(digits=4)
 library(mvtnorm)
+
+
+#' normalize
+#' @param Z Matrix of MVN residuals
+#' @param df Vector of degrees of freedom associated with the student t distributions that were fit to each asset.
+#' @return Matrix of corresponding student residuals
 studentize <- function(Z,df){
   Z=rbind(Z,df)
   
