@@ -1,11 +1,6 @@
 #install.packages("rugarch")
 library(rugarch)
 
-snp500 = read.csv("snp500-adj_close_2004-2018.csv", header = TRUE)
-S<- as.matrix(subset(snp500, select = - c(Date, VIX)))
-
-Y <- diff(log(S))
-
 #' fitGarch
 #' @param LogDiff Matrix of daily log differences in asset prices.
 #' @return List of the following parameters fit to a garch model: df, mu, sigma, and X (the residuals)
@@ -22,7 +17,7 @@ fitGarch <- function(LogDiff){
     return( append(rsd, c(df,mu,sigmas[3407])) )
   }
   
-  X= apply(t(Y), 1,resids)
+  X= apply(t(LogDiff), 1,resids)
   df = X[3408,]
   mu= X[3409,]
   sigmas = X[3410,]
@@ -57,7 +52,7 @@ getParams <- function(Y){
   return(params)
 }
 
-params = getParams(Y)
+
 
 # suppose we want to generate a k day trajectory
 # then we need start by generating our normalized model errors
@@ -83,30 +78,34 @@ studentize <- function(Z,df){
   
 }
 
-z_10 <- rmvnorm(10,mean=rep(0,46),sigma=params$COV)
+basictest <- function(){
+  
+  snp500 = read.csv("snp500-adj_close_2004-2018.csv", header = TRUE)
+  
+  S<- as.matrix(subset(snp500, select = - c(Date, VIX)))
+  
+  Y <- diff(log(S))
+  
+  params = getParams(Y)
+  
+  z_10 <- rmvnorm(10,mean=rep(0,46),sigma=params$COV)
 
+  #now we need to convert these error terms into student t error terms
+  z_10_t = studentize(z_10, params$df)
+  
+  y_10 = params$mu + t(t(z_10_t)*params$sigma)
+  
+  #log returns become simple returns (i.e. the percentage of previous return)
+  #now we want to calculate the price of the assets ten days from now
+  
+  S_10 = apply(exp(y_10),2,prod) *S[dim(S)[1],]
+  
+  returns = S_10-S[dim(S)[1],]
+  
+  plot(returns, type='n')
+  text(1:46, returns, colnames(S))
+}
 
-
-#now we need to convert these error terms into student t error terms
-z_10_t = studentize(z_10, params$df)
-
-y_10 = params$mu + t(t(z_10_t)*params$sigma)
-
-#log returns become simple returns (i.e. the percentage of previous return)
-#now we want to calculate the price of the assets ten days from now
-
-S_10 = apply(exp(y_10),2,prod) *S[dim(S)[1],]
-
-returns = S_10-S[dim(S)[1],]
-
-plot(returns, type='n')
-text(1:46, returns, colnames(S))
-
-print("hi")
-# now we need to take the value of all the assets at day t: S_t, and 
-
-
-#asdfasdf
 
 #' K trajectories
 #' @param S Matrix of asset prices. Assumed that each column name is the name of the asset in that column.
