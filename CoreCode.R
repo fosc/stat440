@@ -4,7 +4,7 @@ library(rugarch)
 #' fitGarch
 #' @param Y Matrix of daily log differences in asset prices.
 #' @return List of the following parameters fit to a garch model: df, mu, sigma, and X (the residuals)
-fitGarch <- function(Y){
+fitGarch <- function(Y,k){
   
   n_assets = dim(Y)[2]
   n_days = dim(Y)[1]
@@ -15,20 +15,20 @@ fitGarch <- function(Y){
     mu = gfit.ru@fit$solver$sol$pars[[1]]
     df = gfit.ru@model$pars["shape", 1]
     
-    forecast = ugarchforecast(gfit.ru, n.ahead=10)
+    forecast = ugarchforecast(gfit.ru, n.ahead=k)
     sigmas = as.vector(sigma(forecast)[,1])
-    
+    #print(sigmas)
     historic_sigmas = gfit.ru@fit$sigma 
     rsd = (y_i - mu)/historic_sigmas
     
     print(sigmas[1])
-    return( append(rsd, c(df,mu,sigmas[1])) )
+    return( append(rsd, c(df,mu,sigmas)) )
   }
   
   X= apply(t(Y), 1,resids)
   df = X[(n_days+1),]
   mu= X[(n_days+2),]
-  sigmas = X[(n_days+3),]
+  sigmas = X[(n_days+3):(n_days+2+k),]
   X = X[0:(n_days+1),]
   Gfit <- list("df"=df, "mu"=mu, "sigma"=sigmas, "X"=X)
   return(Gfit)
@@ -43,16 +43,16 @@ normalize <- function(x){
   n = length(x)
   x = x[1:(n-1)]
   z <- qnorm(pt(x, df = df))
-  qqnorm(z)
-  qqline(z, col = 2, lwd = 2, lty = 2)
+  #qqnorm(z)
+  #qqline(z, col = 2, lwd = 2, lty = 2)
   return(z)
 }
 
 #' getParams
 #' @param Y Matrix of daily log differences in asset prices.
 #' @return List of parameters of GARCH GC model: COR, df, mu, sigma, COV
-getParams <- function(Y){
-  GARCH = fitGarch(Y)
+getParams <- function(Y,k){
+  GARCH = fitGarch(Y,k)
   Z = apply(t(GARCH$X),1,normalize)
   COR = cor(Z)
   COV = cov(Z)
@@ -120,7 +120,7 @@ basictest <- function(){
 #' @param k Natural number, number of timesteps ahead to forecast asset values.
 #' @param pct_return Boolean, TRUE = give returns as percentage of current value, FALSE = actual change in stock value.
 #' @return Vector containing the forcasted returns. Either as a percentage or current value or simply change in price of stock.
-k_trajectories <- function(S, params, k, as_percentage = FALSE){
+k_trajectories <- function(S, k, params, as_percentage = FALSE){
   
   num_timesteps <- dim(S)[1]
   num_assets <- dim(S)[2]
@@ -144,7 +144,7 @@ k_trajectories <- function(S, params, k, as_percentage = FALSE){
   
   #Estimates for change in value at each of the k forcasted time steps,
   #as the log of the ratio of the last given value in time series
-  y_k = params$mu[asset_names] + z_k_t * params$sigma[asset_names]
+  y_k = params$mu[asset_names] + z_k_t * params$sigma[,asset_names]
   
   #Calculate ratio of final to last given value over k timesteps
   #Handle cases for predictions one timestep into future and
@@ -182,7 +182,9 @@ k_trajectories <- function(S, params, k, as_percentage = FALSE){
 #' @param n Natural number, number of times to make k-step prediction. This will be number of elements in vector returned
 #' @param plot_hist Boolean, TRUE = plot histogram of predicted portfolio values.
 #' @return Vector containing the n forcasted portfolio values.
-portfolio_k_forecast_distribution <- function(P, q, params, k, n, plot_hist = FALSE){
+portfolio_k_forecast_distribution <- function(P, q, k, n, plot_hist = FALSE){
+  
+  params <- getParams(diff(log(P)), k)
   
   num_timesteps <- dim(P)[1]
   num_assets <- dim(P)[2]
@@ -191,7 +193,7 @@ portfolio_k_forecast_distribution <- function(P, q, params, k, n, plot_hist = FA
   #Produces n forecasts of length k as matrix with asset names as columns
   #and each row being one of the n forecasts
   returns <- t(replicate(n, 
-                         k_trajectories(S = P, params = params, k = k), 
+                         k_trajectories(S = P, params=params, k = k), 
                          simplify = "vector"))
   
   #Convert list of returns to martix for computing portfolio values
