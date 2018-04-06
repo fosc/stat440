@@ -38,23 +38,33 @@ expect_error(getWindow(testS,wLength=4, wOffset=3 ) )
 expect_error(getWindow(testS,wLength=3, wOffset=-1 ) )
 
 
-#how we cycle through the historic data points
-
+#' portfolio_timeseries
+#' @param S Matrix of prices for one or more assets
+#' @param wLength how much historic data we will use when modelling the future portfolio
+#' @param k how often to rebalance. Also, how many days into the future to project when rebalancing
+#' @return List with two componenets. A matrix of sequential values of q (i.e. the portfolio weights) 
+#' and a vector containing the days on which the portfolio was rebalanced.
 portfolio_timeseries <- function(S, k, wLength){
+  
+  n_assets = dim(S)[2]
   
   n_rebalance = ceiling((dim(S)[1]-wLength)/k)
   
   rebalance_days = wLength+1+(0:(n_rebalance-1))*k
   
+  q_values = matrix(0, nrow=n_assets ,ncol=n_rebalance)
+  
   for(day in rebalance_days){
     
     train_data = getWindow(S, wLength, day-(wLength+1) )
     
-    #now calculate the portfolio weightings q using train_data. Save these values of q in a list. 
+    #now calculate the portfolio weightings q using train_data. Save these values of q in a matrix 
+    q= c(1,2,3)
+    i= match(day, rebalance_days)
+    q_values[,i] <- q
     
   }
-  
-  
+  return(list(q=q_values, day=rebalance_days))
 }
 
 
