@@ -115,46 +115,103 @@ basictest <- function(){
 
 #' K trajectories
 #' @param S Matrix of asset prices. Assumed that each column name is the name of the asset in that column.
+#'          In the case of one asset, this means that S must be an nX1 matrix with column name being the name of the asset.
 #' @param Params List of parameters from fitted GARCH(1, 1) models for each asset. (COR, DF, MU, SIGMA).
 #' @param k Natural number, number of timesteps ahead to forecast asset values.
 #' @param pct_return Boolean, TRUE = give returns as percentage of current value, FALSE = actual change in stock value.
 #' @return Vector containing the forcasted returns. Either as a percentage or current value or simply change in price of stock.
 k_trajectories <- function(S, params, k, as_percentage = FALSE){
   
-  #Number of timesteps in data, number of assets
-  final_timestep = dim(S)[1]
-  n_assets = dim(S)[2]
+  num_timesteps <- dim(S)[1]
+  num_assets <- dim(S)[2]
   asset_names = colnames(S)
   
-  #Generate model errors from MVN, convert to student t scale
-  z_k = rmvnorm(k, rep(0, n_assets), params$COR[asset_names, asset_names])
-  z_k_t = studentize(z_k, df = params$df[asset_names])
+  #Number of timesteps in data, number of assets.
+  #If only a single asset is passed in a nX1 matrix
+  #need to handle differently.
+  if(num_assets != 1){
+    
+    #Generate model errors from MVN, convert to student t scale
+    z_k = rmvnorm(k, rep(0, num_assets), params$COR[asset_names, asset_names])
+    z_k_t = studentize(z_k, df = params$df[asset_names])
+    
+  }else{
+    
+    #Generate model errors from Normal, convert to student t scale
+    z_k = rnorm(k, 0, params$COR[asset_names, asset_names])
+    z_k_t = studentize(z_k, df = params$df[asset_names])
+  }
   
   #Estimates for change in value at each of the k forcasted time steps,
   #as the log of the ratio of the last given value in time series
   y_k = params$mu[asset_names] + z_k_t * params$sigma[asset_names]
   
   #Calculate ratio of final to last given value over k timesteps
+  #Handle cases for predictions one timestep into future and
+  #predictions for a single asset separately. 
   if(k == 1){
     return_ratio = exp(y_k)
+  }else if (num_assets == 1){
+    return_ratio = Reduce(prod, exp(y_k))
   }else{
     return_ratio = apply(exp(y_k), 2, prod)
   }
   
   #Calculate actual forcasted value
-  S_k = return_ratio * S[final_timestep,]
-  returns = S_k - S[final_timestep,]
+  S_k = return_ratio * S[num_timesteps,]
+  returns = S_k - S[num_timesteps,]
   
   if (as_percentage == TRUE){
     pct_returns = return_ratio - 1
-    print(pct_returns)
     return(pct_returns)
   }else{
     return(returns)
   }
 }
 
-
+#****TO DO: *make more efficient: pretty slow after 10,000 or so portfolio forecasts
+#           *improve histogram clarity: default number of bins may not optimal, denisty may be more useful than frequency
+#           *get sample mean and var of portfolio predictions for use later
+#           *confidence intervals etc.
+#' #Create portfolio forecast distribtion
+#' @param P Matrix of asset prices. Assumed that each column name is the name of the asset in that column.
+#'          In the case of one asset, this means that P must be an nX1 matrix with column name being the name of the asset.
+#' @param Params List of parameters from fitted GARCH(1, 1) models for each asset. (COR, DF, MU, SIGMA).
+#' @param q Vector, number of shares of each asset held in portfolio (P), given in order of assets in columns of P from left to right
+#' @param k Natural number, number of timesteps ahead to forecast asset values.
+#' @param n Natural number, number of times to make k-step prediction. This will be number of elements in vector returned
+#' @param plot_hist Boolean, TRUE = plot histogram of predicted portfolio values.
+#' @return Vector containing the n forcasted portfolio values.
+portfolio_k_forecast_distribution <- function(P, q, params, k, n, plot_hist = FALSE){
+  
+  num_timesteps <- dim(P)[1]
+  num_assets <- dim(P)[2]
+  s_t = unlist(P[num_timesteps, ]) 
+  
+  #Produces n forecasts of length k as matrix with asset names as columns
+  #and each row being one of the n forecasts
+  returns <- t(replicate(n, 
+                         k_trajectories(S = P, params = params, k = k), 
+                         simplify = "vector"))
+  
+  #Convert list of returns to martix for computing portfolio values
+  returns <- matrix(unlist(returns), ncol = num_assets, nrow = n)
+  
+  #S_t_k is matrix of predicted asset values
+  S_t_k <- t(t(returns) + s_t)
+  
+  #P_t_k is vector of predicted portfolio values
+  P_t_k <- S_t_k %*% q
+  
+  if (plot_hist){
+    hist(P_t_k, 
+         xlab = "Predicted Portfolio Values ($)",
+         ylab = "Frequency",
+         freq = TRUE,
+         col = adjustcolor("grey", alpha = 0.5))
+  }
+  return(P_t_k)
+}
 
 
 
