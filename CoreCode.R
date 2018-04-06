@@ -17,7 +17,7 @@ fitGarch <- function(LogDiff){
     return( append(rsd, c(df,mu,sigmas[3407])) )
   }
   
-  X= apply(t(LogDiff), 1,resids)
+  X= apply(t(Y), 1,resids)
   df = X[3408,]
   mu= X[3409,]
   sigmas = X[3410,]
@@ -79,9 +79,7 @@ studentize <- function(Z,df){
 }
 
 basictest <- function(){
-  
   snp500 = read.csv("snp500-adj_close_2004-2018.csv", header = TRUE)
-  
   S<- as.matrix(subset(snp500, select = - c(Date, VIX)))
   
   Y <- diff(log(S))
