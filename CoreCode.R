@@ -14,11 +14,15 @@ fitGarch <- function(Y){
     gfit.ru <- ugarchfit(gspec.ru, y_i)
     mu = gfit.ru@fit$solver$sol$pars[[1]]
     df = gfit.ru@model$pars["shape", 1]
-    sigmas = gfit.ru@fit$sigma
-    rsd = (y_i - mu)/sigmas
     
-    print(sigmas[n_days])
-    return( append(rsd, c(df,mu,sigmas[n_days])) )
+    forecast = ugarchforecast(gfit.ru, n.ahead=10)
+    sigmas = as.vector(sigma(forecast)[,1])
+    
+    historic_sigmas = gfit.ru@fit$sigma 
+    rsd = (y_i - mu)/historic_sigmas
+    
+    print(sigmas[1])
+    return( append(rsd, c(df,mu,sigmas[1])) )
   }
   
   X= apply(t(Y), 1,resids)
