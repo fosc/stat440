@@ -2,26 +2,30 @@
 library(rugarch)
 
 #' fitGarch
-#' @param LogDiff Matrix of daily log differences in asset prices.
+#' @param Y Matrix of daily log differences in asset prices.
 #' @return List of the following parameters fit to a garch model: df, mu, sigma, and X (the residuals)
-fitGarch <- function(LogDiff){
+fitGarch <- function(Y){
   
-  resids <- function(LogDiff){
+  n_assets = dim(Y)[2]
+  n_days = dim(Y)[1]
+  
+  resids <- function(y_i){
     gspec.ru <- ugarchspec(mean.model=list(armaOrder=c(0,0)), distribution="std")
-    gfit.ru <- ugarchfit(gspec.ru, LogDiff)
+    gfit.ru <- ugarchfit(gspec.ru, y_i)
     mu = gfit.ru@fit$solver$sol$pars[[1]]
     df = gfit.ru@model$pars["shape", 1]
     sigmas = gfit.ru@fit$sigma
-    rsd = (LogDiff - mu)/sigmas
-    print(sigmas[3407])
-    return( append(rsd, c(df,mu,sigmas[3407])) )
+    rsd = (y_i - mu)/sigmas
+    
+    print(sigmas[n_days])
+    return( append(rsd, c(df,mu,sigmas[n_days])) )
   }
   
   X= apply(t(Y), 1,resids)
-  df = X[3408,]
-  mu= X[3409,]
-  sigmas = X[3410,]
-  X = X[0:3408,]
+  df = X[(n_days+1),]
+  mu= X[(n_days+2),]
+  sigmas = X[(n_days+3),]
+  X = X[0:(n_days+1),]
   Gfit <- list("df"=df, "mu"=mu, "sigma"=sigmas, "X"=X)
   return(Gfit)
   
