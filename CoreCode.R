@@ -165,7 +165,49 @@ k_trajectories <- function(S, params, k, as_percentage = FALSE){
   }
 }
 
-
+#****TO DO: *make more efficient: pretty slow after 10,000 or so portfolio forecasts
+#           *improve histogram clarity: default number of bins may not optimal, denisty may be more useful than frequency
+#           *get sample mean and var of portfolio predictions for use later
+#           *confidence intervals etc.
+#' #Create portfolio forecast distribtion
+#' @param P Matrix of asset prices. Assumed that each column name is the name of the asset in that column.
+#'          In the case of one asset, this means that P must be an nX1 matrix with column name being the name of the asset.
+#' @param Params List of parameters from fitted GARCH(1, 1) models for each asset. (COR, DF, MU, SIGMA).
+#' @param q Vector, number of shares of each asset held in portfolio (P), given in order of assets in columns of P from left to right
+#' @param k Natural number, number of timesteps ahead to forecast asset values.
+#' @param n Natural number, number of times to make k-step prediction. This will be number of elements in vector returned
+#' @param plot_hist Boolean, TRUE = plot histogram of predicted portfolio values.
+#' @return Vector containing the n forcasted portfolio values.
+portfolio_k_forecast_distribution <- function(P, q, params, k, n, plot_hist = FALSE){
+  
+  num_timesteps <- dim(P)[1]
+  num_assets <- dim(P)[2]
+  s_t = unlist(P[num_timesteps, ]) 
+  
+  #Produces n forecasts of length k as matrix with asset names as columns
+  #and each row being one of the n forecasts
+  returns <- t(replicate(n, 
+                         k_trajectories(S = P, params = params, k = k), 
+                         simplify = "vector"))
+  
+  #Convert list of returns to martix for computing portfolio values
+  returns <- matrix(unlist(returns), ncol = num_assets, nrow = n)
+  
+  #S_t_k is matrix of predicted asset values
+  S_t_k <- t(t(returns) + s_t)
+  
+  #P_t_k is vector of predicted portfolio values
+  P_t_k <- S_t_k %*% q
+  
+  if (plot_hist){
+    hist(P_t_k, 
+         xlab = "Predicted Portfolio Values ($)",
+         ylab = "Frequency",
+         freq = TRUE,
+         col = adjustcolor("grey", alpha = 0.5))
+  }
+  return(P_t_k)
+}
 
 
 
