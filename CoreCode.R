@@ -3,6 +3,7 @@ library(rugarch)
 
 #' fitGarch
 #' @param Y Matrix of daily log differences in asset prices.
+#' @param k Natural Number, number of time periods ahead to forecast volatlity
 #' @return List of the following parameters fit to a garch model: df, mu, sigma, and X (the residuals)
 fitGarch <- function(Y,k){
   
