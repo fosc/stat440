@@ -170,9 +170,8 @@ k_trajectories <- function(S, k, params, as_percentage = FALSE){
 }
 
 #****TO DO: *make more efficient: pretty slow after 10,000 or so portfolio forecasts
-#           *get sample mean and var of portfolio predictions for use later
-#           *confidence intervals etc.
-#' #Create portfolio forecast distribtion
+#           *confidence intervals? etc.
+#' #Create portfolio forecast distribtion, get mean, variance of forecasted returns
 #' @param P Matrix of asset prices. Assumed that each column name is the name of the asset in that column.
 #'          In the case of one asset, this means that P must be an nX1 matrix with column name being the name of the asset.
 #' @param Params List of parameters from fitted GARCH(1, 1) models for each asset. (COR, DF, MU, SIGMA).
@@ -180,10 +179,9 @@ k_trajectories <- function(S, k, params, as_percentage = FALSE){
 #' @param k Natural number, number of timesteps ahead to forecast asset values.
 #' @param n Natural number, number of times to make k-step prediction. This will be number of elements in vector returned
 #' @param plot_hist Boolean, TRUE = plot histogram of predicted portfolio values.
-#' @return Vector containing the n forcasted portfolio values.
-portfolio_k_forecast_distribution <- function(P, q, k, n, plot_hist = FALSE){
-  
-  params <- getParams(diff(log(P)), k)
+#' @return List containing: (Vector) P_t_k of n forcasted portfolio values, (Vector) mu of mean forecasted returns for each asset, 
+#' (Matrix) Sigma variance-covariance matrix of forecasted returns. 
+portfolio_k_forecast_distribution <- function(P, q, params, k, n, plot_hist = FALSE){
   
   num_timesteps <- dim(P)[1]
   num_assets <- dim(P)[2]
@@ -192,11 +190,17 @@ portfolio_k_forecast_distribution <- function(P, q, k, n, plot_hist = FALSE){
   #Produces n forecasts of length k as matrix with asset names as columns
   #and each row being one of the n forecasts
   returns <- t(replicate(n, 
-                         k_trajectories(S = P, params=params, k = k), 
+                         k_trajectories(S = P, params = params, k = k), 
                          simplify = "vector"))
   
   #Convert list of returns to martix for computing portfolio values
-  returns <- matrix(unlist(returns), ncol = num_assets, nrow = n)
+  returns <- matrix(unlist(returns), 
+                    ncol = num_assets, 
+                    nrow = n, 
+                    dimnames = list(NULL,colnames(returns)))
+  
+  mu_returns <- apply(returns, 2, mean)
+  Sigma_returns <- cov(returns)
   
   #S_t_k is matrix of predicted asset values
   S_t_k <- t(t(returns) + s_t)
@@ -206,13 +210,16 @@ portfolio_k_forecast_distribution <- function(P, q, k, n, plot_hist = FALSE){
   
   if (plot_hist){
     hist(P_t_k, 
+         main = "Portfolio Distribution",
          xlab = "Predicted Portfolio Values ($)",
          ylab = "Frequency",
          freq = TRUE,
          breaks = "FD",
          col = adjustcolor("grey", alpha = 0.5))
   }
-  return(P_t_k)
+  
+  forecasted_P_k = list("P_t_k" = P_t_k, "mu" = mu_returns, "Sigma" = Sigma_returns)
+  return(forecasted_P_k)
 }
 
 
