@@ -170,7 +170,6 @@ k_trajectories <- function(S, k, params, as_percentage = FALSE){
 }
 
 #****TO DO: *make more efficient: pretty slow after 10,000 or so portfolio forecasts
-#           *improve histogram clarity: default number of bins may not optimal, denisty may be more useful than frequency
 #           *get sample mean and var of portfolio predictions for use later
 #           *confidence intervals etc.
 #' #Create portfolio forecast distribtion
@@ -210,6 +209,7 @@ portfolio_k_forecast_distribution <- function(P, q, k, n, plot_hist = FALSE){
          xlab = "Predicted Portfolio Values ($)",
          ylab = "Frequency",
          freq = TRUE,
+         breaks = "FD",
          col = adjustcolor("grey", alpha = 0.5))
   }
   return(P_t_k)
