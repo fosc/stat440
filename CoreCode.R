@@ -93,7 +93,7 @@ basictest <- function(){
   
   Y <- diff(log(S))
   
-  params = getParams(Y)
+  params = getParams(Y,k)
   
   z_10 <- rmvnorm(10,mean=rep(0,46),sigma=params$COV)
 
@@ -182,8 +182,10 @@ k_trajectories <- function(S, k, params, as_percentage = FALSE){
 #' @param plot_hist Boolean, TRUE = plot histogram of predicted portfolio values.
 #' @return List containing: (Vector) P_t_k of n forcasted portfolio values, (Vector) mu of mean forecasted returns for each asset, 
 #' (Matrix) Sigma variance-covariance matrix of forecasted returns. 
-portfolio_k_forecast_distribution <- function(P, q, params, k, n, plot_hist = FALSE){
+portfolio_k_forecast_distribution <- function(P,k, q=NULL, n = 100, plot_hist = FALSE){
   
+  Y=diff(log(P)) 
+  params = getParams(Y,k)
   num_timesteps <- dim(P)[1]
   num_assets <- dim(P)[2]
   s_t = unlist(P[num_timesteps, ]) 
@@ -206,10 +208,11 @@ portfolio_k_forecast_distribution <- function(P, q, params, k, n, plot_hist = FA
   #S_t_k is matrix of predicted asset values
   S_t_k <- t(t(returns) + s_t)
   
-  #P_t_k is vector of predicted portfolio values
-  P_t_k <- S_t_k %*% q
   
   if (plot_hist){
+    #P_t_k is vector of predicted portfolio values
+    P_t_k <- S_t_k %*% q
+    
     hist(P_t_k, 
          main = "Portfolio Distribution",
          xlab = "Predicted Portfolio Values ($)",
@@ -219,8 +222,34 @@ portfolio_k_forecast_distribution <- function(P, q, params, k, n, plot_hist = FA
          col = adjustcolor("grey", alpha = 0.5))
   }
   
-  forecasted_P_k = list("P_t_k" = P_t_k, "mu" = mu_returns, "Sigma" = Sigma_returns)
+  forecasted_P_k = list("mu" = mu_returns, "Sigma" = Sigma_returns)
   return(forecasted_P_k)
+}
+
+
+#' K trajectories
+#' @param S Matrix of asset prices. Assumed that each column name is the name of the asset in that column.
+#' @param k the number of days into the future that we will predict and optimize the portfoilo for.
+predict_q <- function(S, k, value){
+  
+  i_today = dim(S)[1]
+  today = as.vector(S[i_today,])
+  
+  
+  forcast <- portfolio_k_forecast_distribution(S,k)
+  sigma <- forcast$Sigma
+  mu <- forcast$mu
+  
+  q_unscaled <- as.vector(solve(sigma)%*%mu)
+  
+  cost <- (q_unscaled %*% today)
+  scale <- value/cost
+  
+  q <- c(scale)*q_unscaled
+  
+  #print(q)
+  
+  return(q)
 }
 
 
