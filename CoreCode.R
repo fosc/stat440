@@ -182,7 +182,7 @@ k_trajectories <- function(S, k, params, as_percentage = FALSE){
 #' @param plot_hist Boolean, TRUE = plot histogram of predicted portfolio values.
 #' @return List containing: (Vector) P_t_k of n forcasted portfolio values, (Vector) mu of mean forecasted returns for each asset, 
 #' (Matrix) Sigma variance-covariance matrix of forecasted returns. 
-portfolio_k_forecast_distribution <- function(P,k, q=NULL, n = 100, plot_hist = FALSE){
+portfolio_k_forecast_distribution <- function(P,k, q=NULL, n = 1000, plot_hist = FALSE){
   
   Y=diff(log(P)) 
   params = getParams(Y,k)
