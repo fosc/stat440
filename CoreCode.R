@@ -242,6 +242,8 @@ predict_q <- function(S, k, value){
   
   q_unscaled <- as.vector(solve(sigma)%*%mu)
   
+  #lambda <- value/(t(mu)%*%sigma%*%mu)
+  
   cost <- (q_unscaled %*% today)
   scale <- value/cost
   
