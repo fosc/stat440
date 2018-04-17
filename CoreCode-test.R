@@ -22,22 +22,34 @@ generate_normalized_data <- function(){
   
   #normalize data
   x <- normalize(c(student_t_data, df))
-  return(c(mean = mean(x), var = var(x)))
+  return(x)
 }
 
-X <- replicate(100, generate_normalized_data())
+test_normalize <- function(){
+  
+  X <- replicate(5, generate_normalized_data(), simplify ="vector")
+  
+  #print(X)
+  
+  X_stats <- list("mean" = sapply(X, FUN = mean), "var" = sapply(X, FUN = var))
+  
+  #print(X_stats)
+  
+  mean_abs_max <- max(abs(X_stats$mean))
+  var_abs_max <- max(abs(X_stats$var))
+  mean_average <- mean(X_stats$mean)
+  var_average <- mean((X_stats$var))
 
-mean_abs_max <- max(abs(X["mean",]))
-var_abs_max <- max(abs(X["var",]))
-mean_average <- mean(X["mean",])
-var_average <- mean((X["var",]))
+  normalize_test_results <- list(mean_average = mean_average,
+                                 var_average = var_average,
+                                 mean_abs_max = mean_abs_max,
+                                 var_abs_max = var_abs_max)
 
-normalize_test_results <- list(mean_average = mean_average,
-                               var_average = var_average,
-                               mean_abs_max = mean_abs_max, 
-                               var_abs_max = var_abs_max)
+  print(normalize_test_results)
+}
 
-print(normalize_test_results)
+test_normalize()
+
 
 #TESTING studentize function       
 #Check visually that studentized data could reasonably come from a student-t using qqplot
@@ -56,19 +68,26 @@ generate_studentized_data <- function(){
   
   normal_data <- t(rmvnorm(1, mean=mean_vec, sigma=sigma))
   
-  print(normal_data)
-  
   #studentize data
   x <- studentize(normal_data, df)
-  print(x)
 
   return(list("data"=x, "df"=df))
 }
 
-x <- generate_studentized_data()
-t.df <- x$df
-x <- x$data
-qqtest(x, dist = "student", df = t.df, lineup = FALSE)
+test_studentize <- function(){
+  
+  x <- generate_studentized_data()
+  t.df <- x$df
+  x <- x$data
+  qqtest(x, 
+         dist = "student", 
+         df = t.df, 
+         main = "QQ plot - studentized data",
+         xlab = paste("Student t(",round(t.df, digits = 3), ") quantiles"))
+  
+}
+
+test_studentize()
 
 #TESTING k_trajectories function       
 # test that distribution of k-trajectories is a student-t distribution
@@ -81,7 +100,7 @@ generate_k_trajectories <- function(){
   
   n <- round(runif(1, min = 2, max = 45))
   print(n)
-  subset_assets <- sample(seq(1:45), 2, replace = FALSE)
+  subset_assets <- sample(seq(1:45), 4, replace = FALSE)
   S_sub <- S[, subset_assets]
   Y <- diff(log(as.matrix(S_sub)))
   
@@ -111,10 +130,10 @@ test_k_trajectories <- function(){
   print(colnames(trajectories))
   
   
-  par(mfrow=c(1, 2))
-  col = 1
-  data_i <- trajectories[, col]
-  df <- dfs[col]
+  par(mfrow=c(2, 2))
+  #col = 1
+  #data_i <- trajectories[, col]
+  #df <- dfs[col]
   #h <- hist(data_i, breaks = "FD", plot = TRUE, freq = FALSE)
   #h$counts <- h$counts/sum(h$counts)
   #plot(h)
@@ -131,11 +150,18 @@ test_k_trajectories <- function(){
   for (col in 1:4){
     data_i <- trajectories[, col]
     df <- dfs[col]
+    asset_name <- colnames(trajectories)[col]
     # hist(data_i, breaks = "FD", freq = FALSE)
     # lines(x = plot_range,
     #       y = dt(plot_range, df = df),
     #       col="red")
-    qqtest(data_i, dist = "student", df = df, lineup = FALSE)
+    qqtest(data_i, 
+           dist = "student", 
+           df = df, 
+           main = paste("qq plot -", asset_name),
+           xlab = paste("Student t(", round(df, digits = 3), ") quantiles"))
   }
 
 }
+
+test_k_trajectories()
