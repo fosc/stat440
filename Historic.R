@@ -86,8 +86,7 @@ q_timeseries <- function(S, k, wLength){
 #' @param S Matrix of prices for one or more assets
 #' @param wLength how much historic data we will use when modelling the future portfolio
 #' @param k how often to rebalance. Equivalently, how many days into the future to project when rebalancing
-#' @return List with two componenets. A matrix of sequential values of q (i.e. the portfolio weights) 
-#' and a vector containing the days on which the portfolio was rebalanced.
+#' @return A vector that contains the daily timeseries values of the portfolio.
 portfolio_timeseries <- function(S, k, wLength){
   
   get_q_index <- function(day){
@@ -106,21 +105,29 @@ portfolio_timeseries <- function(S, k, wLength){
   
   ts <- rep(0,dim(q_data)[1])
   
-  print(list_of_q$q)
-  
   for(day in first_day:last_day){
     i=get_q_index(day)
     #print(i)
     ts[(day -first_day + 1)] <- as.numeric(t( list_of_q$q[,i] )%*%S[day,] )
   }
-  #names(ts) <- first_day:last_day
-  print(ts)
-  plot(first_day:last_day,ts, type='l')
+
+  comparison = apply(S,1,sum)
+  comparison = comparison*ts[1]/comparison[1]
+  
+
+  return(ts)
 
 }
-portfolio_timeseries(S,100,3000)
+ts=portfolio_timeseries(S,100,3000)
+
+#the stuff below was for testing the sensibility of the resuls I was getting
+comparison = apply(S[3000:(length(ts)+2999),],1,sum)
+comparison = comparison*(ts[1]/comparison[1])
 
 
+
+plot(3000:(length(ts)+2999), ts, type='l' )
+lines(3000:(length(ts)+2999), comparison[1:length(ts)], col='red' )
 
 
 
