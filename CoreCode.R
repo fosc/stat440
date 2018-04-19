@@ -170,8 +170,6 @@ k_trajectories <- function(S, k, params, as_percentage = FALSE){
   }
 }
 
-#****TO DO: *make more efficient: pretty slow after 10,000 or so portfolio forecasts
-#           *confidence intervals? etc.
 #' #Create portfolio forecast distribtion, get mean, variance of forecasted returns
 #' @param P Matrix of asset prices. Assumed that each column name is the name of the asset in that column.
 #'          In the case of one asset, this means that P must be an nX1 matrix with column name being the name of the asset.
@@ -180,8 +178,7 @@ k_trajectories <- function(S, k, params, as_percentage = FALSE){
 #' @param k Natural number, number of timesteps ahead to forecast asset values.
 #' @param n Natural number, number of times to make k-step prediction. This will be number of elements in vector returned
 #' @param plot_hist Boolean, TRUE = plot histogram of predicted portfolio values.
-#' @return List containing: (Vector) P_t_k of n forcasted portfolio values, (Vector) mu of mean forecasted returns for each asset, 
-#' (Matrix) Sigma variance-covariance matrix of forecasted returns. 
+#' @return List containing: (Vector) mu of mean forecasted returns for each asset, (Matrix) Sigma variance-covariance matrix of forecasted returns. 
 portfolio_k_forecast_distribution <- function(P,k, q=NULL, n = 1000, plot_hist = FALSE){
   
   Y=diff(log(P)) 

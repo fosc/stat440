@@ -18,24 +18,12 @@ getWindow <- function(S, wLength, wOffset){
   t_final = dim(S)[1]
   
   #we don't train on less than 2000 daily observations.
-  if(wLength<2000) print("window length is below 2000. Fails to meet minimum data requirements.")
+  #if(wLength<2000) print("window length is below 2000. Fails to meet minimum data requirements.")
   if(wLength+wOffset > t_final ) stop("cannot create window. Doing so would push timesteps beyond t_final.")
   if(wOffset < 0) stop("cannot have negative offset for window")
 
   return(S[(1+wOffset):(wOffset+wLength),])
 }
-
-
-#some testing for the function
-testS = matrix(c(1.00,2,3,4,5,6,7.101,8,9,11,12,13,14,15.999,16,17,18,19), ncol=3, byrow=TRUE, dimnames=list(c(1,2,3,4,5,6),c('WFC','JPM','AIG')))
-
-#install.packages("testthat")
-require(testthat)
-
-expect_identical(getWindow(testS,wLength=3, wOffset=1 ), testS[2:4,] )
-expect_identical(getWindow(testS,wLength=3, wOffset=0 ), testS[1:3,] )
-expect_error(getWindow(testS,wLength=4, wOffset=3 ) )
-expect_error(getWindow(testS,wLength=3, wOffset=-1 ) )
 
 
 #' q_timeseries
@@ -114,21 +102,43 @@ portfolio_timeseries <- function(S, k, wLength){
   comparison = apply(S,1,sum)
   comparison = comparison*ts[1]/comparison[1]
   
+  timeseries_list <- list("ts" = ts, "portfolio.weights" = list_of_q$q, "rebalance.days" = list_of_q$day)
 
-  return(ts)
+  return(timeseries_list)
 
 }
-ts=portfolio_timeseries(S,100,3000)
 
-#the stuff below was for testing the sensibility of the resuls I was getting
-comparison = apply(S[3000:(length(ts)+2999),],1,sum)
-comparison = comparison*(ts[1]/comparison[1])
-
-
-
-plot(3000:(length(ts)+2999), ts, type='l' )
-lines(3000:(length(ts)+2999), comparison[1:length(ts)], col='red' )
-
-
-
+# 
+# ts=portfolio_timeseries(S,100,3000)
+# 
+# #the stuff below was for testing the sensibility of the resuls I was getting
+# comparison = apply(S[3000:(length(ts)+2999),],1,sum)
+# comparison = comparison*(ts[1]/comparison[1])
+# 
+# plot(3000:(length(ts)+2999), ts, type='l' )
+# lines(3000:(length(ts)+2999), comparison[1:length(ts)], col='red' )
+# 
+# ts_monthly <- portfolio_timeseries(S, k = 22, wLength = 3000)
+# ts_quarterly <- portfolio_timeseries(S, k = 63, wLength = 3000)
+# ts_yearly <- portfolio_timeseries(S, k = 252, wLength = 3000)
+# 
+# write.table(ts_yearly$portfolio.weights,
+#            file = "anually.csv",
+#            row.names = FALSE,
+#            sep = ",",
+#            quote = FALSE)
+# 
+# write.table(ts_yearly$ts,
+#             file = "anually.csv",
+#             row.names = FALSE,
+#             col.names = "ts_yearly$ts",
+#             sep = ",",
+#             quote = FALSE, append = TRUE)
+# 
+# write.table(ts_yearly$rebalance.days,
+#             file = "anually.csv",
+#             row.names = FALSE,
+#             col.names = "ts_yearly$rebalance.days",
+#             sep = ",",
+#             quote = FALSE, append = TRUE)
 

@@ -76,6 +76,8 @@ generate_studentized_data <- function(){
 
 test_studentize <- function(){
   
+  par(mfrow=c(1, 1))
+  
   x <- generate_studentized_data()
   t.df <- x$df
   x <- x$data
