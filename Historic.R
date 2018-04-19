@@ -108,37 +108,37 @@ portfolio_timeseries <- function(S, k, wLength){
 
 }
 
-# 
-# ts=portfolio_timeseries(S,100,3000)
-# 
-# #the stuff below was for testing the sensibility of the resuls I was getting
-# comparison = apply(S[3000:(length(ts)+2999),],1,sum)
-# comparison = comparison*(ts[1]/comparison[1])
-# 
-# plot(3000:(length(ts)+2999), ts, type='l' )
-# lines(3000:(length(ts)+2999), comparison[1:length(ts)], col='red' )
-# 
-# ts_monthly <- portfolio_timeseries(S, k = 22, wLength = 3000)
-# ts_quarterly <- portfolio_timeseries(S, k = 63, wLength = 3000)
-# ts_yearly <- portfolio_timeseries(S, k = 252, wLength = 3000)
-# 
-# write.table(ts_yearly$portfolio.weights,
-#            file = "anually.csv",
-#            row.names = FALSE,
-#            sep = ",",
-#            quote = FALSE)
-# 
-# write.table(ts_yearly$ts,
-#             file = "anually.csv",
-#             row.names = FALSE,
-#             col.names = "ts_yearly$ts",
-#             sep = ",",
-#             quote = FALSE, append = TRUE)
-# 
-# write.table(ts_yearly$rebalance.days,
-#             file = "anually.csv",
-#             row.names = FALSE,
-#             col.names = "ts_yearly$rebalance.days",
-#             sep = ",",
-#             quote = FALSE, append = TRUE)
+
+ts=portfolio_timeseries(S,100,3000)
+
+#the stuff below was for testing the sensibility of the resuls I was getting
+comparison = apply(S[3000:(length(ts)+2999),],1,sum)
+comparison = comparison*(ts[1]/comparison[1])
+
+plot(3000:(length(ts)+2999), ts, type='l' )
+lines(3000:(length(ts)+2999), comparison[1:length(ts)], col='red' )
+
+ts_monthly <- portfolio_timeseries(S, k = 22, wLength = 3000)
+ts_quarterly <- portfolio_timeseries(S, k = 63, wLength = 3000)
+ts_yearly <- portfolio_timeseries(S, k = 252, wLength = 3000)
+
+write.table(ts_yearly$portfolio.weights,
+           file = "anually.csv",
+           row.names = FALSE,
+           sep = ",",
+           quote = FALSE)
+
+write.table(ts_yearly$ts,
+            file = "anually.csv",
+            row.names = FALSE,
+            col.names = "ts_yearly$ts",
+            sep = ",",
+            quote = FALSE, append = TRUE)
+
+write.table(ts_yearly$rebalance.days,
+            file = "anually.csv",
+            row.names = FALSE,
+            col.names = "ts_yearly$rebalance.days",
+            sep = ",",
+            quote = FALSE, append = TRUE)
 
