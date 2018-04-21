@@ -5,20 +5,16 @@ library(mvtnorm)
 library(qqtest)
 source("CoreCode.R")
 
-#TESTING normalize function       
-#Test numerically that that E(x) ~= 0 and Var(x) ~= 1
+#TEST normalize      
+#NUMERICALLY: Check that that E(x) ~= 0 and Var(x) ~= 1 for residuals converted to N(0,1)
 mu = 0
 sig = 1
 
-#Transform randomly generated student t data to N(0,1) data
 generate_normalized_data <- function(){
   
-  #generate random n student t data points
   n <- round(runif(1, min = 2000, max = 5200))
   df <- runif(1, min = 2, max = 50)
   student_t_data <- rt(n, df)
-  
-  #print(n)
   
   #normalize data
   x <- normalize(c(student_t_data, df))
@@ -28,12 +24,7 @@ generate_normalized_data <- function(){
 test_normalize <- function(){
   
   X <- replicate(5, generate_normalized_data(), simplify ="vector")
-  
-  #print(X)
-  
   X_stats <- list("mean" = sapply(X, FUN = mean), "var" = sapply(X, FUN = var))
-  
-  #print(X_stats)
   
   mean_abs_max <- max(abs(X_stats$mean))
   var_abs_max <- max(abs(X_stats$var))
@@ -51,12 +42,8 @@ test_normalize <- function(){
 test_normalize()
 
 
-#TESTING studentize function       
-#Check visually that studentized data could reasonably come from a student-t using qqplot
-
-#Intermittent Issue: if there is a large negative or large positive value in
-#the normal data passed to studentize, pnorm() will produce 0, which will in 
-#turn make qt() produce either -Inf or Inf. 
+#TESTING studentize      
+#VISUALLY: Check that studentized data could reasonably fits a student-t distribution using qqplot
 generate_studentized_data <- function(){
   
   #generate random n student t data points
@@ -91,8 +78,8 @@ test_studentize <- function(){
 
 test_studentize()
 
-#TESTING k_trajectories function       
-# test that distribution of k-trajectories is a student-t distribution
+#TESTING k_trajectories      
+#VISUALLY: Check that distribution of k-trajectories reasonably fits a student t distribution
 
 snp500 <- read.csv("snp500-adj_close_2004-2018.csv", header = TRUE)
 S <- subset(snp500, select = -Date)
@@ -106,12 +93,12 @@ generate_k_trajectories <- function(){
   S_sub <- S[, subset_assets]
   Y <- diff(log(as.matrix(S_sub)))
   
-  k <- round(runif(1, min = 1, max = 30))
+  k <- round(runif(1, min = 2, max = 252))
   print(k)
   params <- getParams(Y, k)
   
   k_traj <- t(replicate(1000, 
-                        k_trajectories(S = S_sub, params = params, k = k, as_percentage = TRUE), 
+                        k_trajectories(S = S_sub, params = params, k = k, as_percentage = FALSE), 
                         simplify = "vector"))
 
   #print(head(S_sub))
@@ -126,40 +113,17 @@ test_k_trajectories <- function(){
   trajectories <-  traj.params$trajectories
   n_samples <- dim(trajectories)[1]
   
-  #print(n_samples)
-  plot_range = seq(-1, 1, length.out = n_samples)
-  #print(plot_range)
-  print(colnames(trajectories))
-  
-  
   par(mfrow=c(2, 2))
-  #col = 1
-  #data_i <- trajectories[, col]
-  #df <- dfs[col]
-  #h <- hist(data_i, breaks = "FD", plot = TRUE, freq = FALSE)
-  #h$counts <- h$counts/sum(h$counts)
-  #plot(h)
-  par(mfrow=c(2, 2))
-  #print(sum(h$density))
   
-  print(df)
-  #print(plot_range)
-  #print(dt(plot_range, df = df))
-  #plot(x = plot_range,
-        #y = dt(plot_range, df = df),
-        #col="red")
+  #print(df)
   
   for (col in 1:4){
     data_i <- trajectories[, col]
     df <- dfs[col]
     asset_name <- colnames(trajectories)[col]
-    # hist(data_i, breaks = "FD", freq = FALSE)
-    # lines(x = plot_range,
-    #       y = dt(plot_range, df = df),
-    #       col="red")
-    qqtest(data_i, 
-           dist = "student", 
-           df = df, 
+    qqtest(data_i,
+           dist = "student",
+           df = df,
            main = paste("qq plot -", asset_name),
            xlab = paste("Student t(", round(df, digits = 3), ") quantiles"))
   }
@@ -167,3 +131,46 @@ test_k_trajectories <- function(){
 }
 
 test_k_trajectories()
+
+
+#TESTING portfolio_k_forecast_distribution function       
+# NUMERICALLY: test that prediction mean returns for individual assets are consistent,
+#i.e check that they are within a reasonable tolerance.
+
+generate_portfolio_forecast <- function(){
+  
+  # n <- round(runif(1, min = 2, max = 5))
+  # print(n)
+  # subset_assets <- sample(seq(1:45), n, replace = FALSE)
+  # S_sub <- S[, subset_assets]
+  Y <- diff(log(as.matrix(S)))
+  
+  #k <- round(runif(1, min = 2, max = 22))
+  #print(k)
+  k <- 22
+  params <- getParams(Y, k)
+  
+  portfolio_forecasts <- t(replicate(2, 
+                          portfolio_k_forecast_distribution(P = S, k = k)$mu, 
+                          simplify = "vector"))
+  
+  abs(diff(portfolio_forecasts))
+  
+  return()
+}
+
+
+generate_portfolio_forecast()
+
+test_portfolio_forecast <- function(){
+  
+  portfolio_means <- replicate(10, generate_portfolio_forecast(), simplify = "vector")
+  
+  print(portfolio_means)
+  
+  #diff_abs <- abs(diff(portfolio_means))
+  
+  #print(diff_abs)
+}
+
+monthly_mu_constency_test <- test_portfolio_forecast()

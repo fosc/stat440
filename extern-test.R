@@ -1,10 +1,9 @@
 library(mvtnorm)
 library(qqtest)
-#library(rugarch)
+library(rugarch)
 
-#Graphical test of qqtest function from qqtest library:
-#Generate data from various distributions and verify that qq plots against that same distribution
-#fit well.
+#TEST qqtest from qqtest
+#VISUAL: Check that data from various distributions fit well on qq plots against that same distribution
 qqtest_student_test <- function(){
   
   par(mfrow=c(2, 2))
@@ -24,3 +23,42 @@ qqtest_student_test <- function(){
 
 qqtest_student_test()
 
+#TEST rvmnorm from mvtnorm
+#NUMERICAL: Check that 100,000 multivariate normal samples approach a specified mean and variance
+rmvnorm_test <- function(){
+  mu <- 1:3
+  sg <- matrix(round(runif(n = 9, min = 1, max = 3)), nrow = 3, ncol = 3)
+  sg <- t(sg) %*% sg
+  
+  samples <- rmvnorm(100000, mu, sg)
+  means <- apply(samples, MARGIN = 2, mean)
+  var_matrix <- var(samples)
+  
+  results <- list("means" = means, "var_matrix" = var_matrix, "abs_mean_diff" = abs(means - mu), "abs_var_diff" = abs(sg - var_matrix))
+  return(results)
+}
+
+rmvnorm_test()
+
+
+#TEST ugarchfit from rugarch
+#VISUAL: Check that residuals of GARCH(1,1) model match theoretical student t distribution using a
+#qqplot and density plot.
+
+snp500 = read.csv("snp500-adj_close_2004-2018.csv", header = TRUE)
+S <- as.matrix(subset(snp500, select = - c(Date, VIX, GSPC)))
+
+ugarchfit_test <- function(){
+  
+  n <- round(runif(1, min = 1, max = 45))
+  s <- S[, n]
+  y <- diff(log(s))
+  
+  garch_spec <- ugarchspec(mean.model=list(armaOrder=c(0,0)), distribution="std")
+  garch_fit <- ugarchfit(garch_spec, y)
+  
+  plot(garch_fit)
+  
+}
+
+ugarchfit_test()

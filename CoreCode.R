@@ -18,11 +18,11 @@ fitGarch <- function(Y,k){
     
     forecast = ugarchforecast(gfit.ru, n.ahead=k)
     sigmas = as.vector(sigma(forecast)[,1])
-    #print(sigmas)
+    print(sigmas)
     historic_sigmas = gfit.ru@fit$sigma 
     rsd = (y_i - mu)/historic_sigmas
     
-    print(sigmas[1])
+    #print(sigmas[1])
     return( append(rsd, c(df,mu,sigmas)) )
   }
   
@@ -179,13 +179,15 @@ k_trajectories <- function(S, k, params, as_percentage = FALSE){
 #' @param n Natural number, number of times to make k-step prediction. This will be number of elements in vector returned
 #' @param plot_hist Boolean, TRUE = plot histogram of predicted portfolio values.
 #' @return List containing: (Vector) mu of mean forecasted returns for each asset, (Matrix) Sigma variance-covariance matrix of forecasted returns. 
-portfolio_k_forecast_distribution <- function(P,k, q=NULL, n = 1000, plot_hist = FALSE){
+portfolio_k_forecast_distribution <- function(P,k, q=NULL, n = 2000, plot_hist = FALSE){
   
   Y=diff(log(P)) 
   params = getParams(Y,k)
   num_timesteps <- dim(P)[1]
   num_assets <- dim(P)[2]
   s_t = unlist(P[num_timesteps, ]) 
+  
+  #print(params$df)
   
   #Produces n forecasts of length k as matrix with asset names as columns
   #and each row being one of the n forecasts
@@ -199,6 +201,18 @@ portfolio_k_forecast_distribution <- function(P,k, q=NULL, n = 1000, plot_hist =
                     nrow = n, 
                     dimnames = list(NULL,colnames(returns)))
   
+ # hist(returns[,1], breaks = "FD", probability = TRUE, ylim = c(0, 0.4))
+ # lines(seq(-10, 10, length.out = n),
+ #        dt(seq(-10, 10, length.out = n), df = params$df[1]), col = "blue")
+ #print(params$df[1])
+ 
+ #qqtest(data = returns[,1], dist = "student", df = params$df[1], main = "Student t test")
+ #qqtest(data = returns[,1], dist = "normal", main = "Normal test")
+ # lines(seq(-10, 10, length.out = n),
+ #       dt(seq(-10, 10, length.out = n), df = 1), col = "green")
+ # lines(seq(-10, 10, length.out = n),
+ #        dnorm(seq(-10, 10, length.out = n)), col = "red")
+
   mu_returns <- apply(returns, 2, mean)
   Sigma_returns <- cov(returns)
   
@@ -217,6 +231,7 @@ portfolio_k_forecast_distribution <- function(P,k, q=NULL, n = 1000, plot_hist =
          freq = TRUE,
          breaks = "FD",
          col = adjustcolor("grey", alpha = 0.5))
+    
   }
   
   forecasted_P_k = list("mu" = mu_returns, "Sigma" = Sigma_returns)
@@ -224,7 +239,7 @@ portfolio_k_forecast_distribution <- function(P,k, q=NULL, n = 1000, plot_hist =
 }
 
 
-#' K trajectories
+#' Predict q
 #' @param S Matrix of asset prices. Assumed that each column name is the name of the asset in that column.
 #' @param k the number of days into the future that we will predict and optimize the portfoilo for.
 predict_q <- function(S, k, value){

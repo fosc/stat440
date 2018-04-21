@@ -119,26 +119,124 @@ plot(3000:(length(ts)+2999), ts, type='l' )
 lines(3000:(length(ts)+2999), comparison[1:length(ts)], col='red' )
 
 ts_monthly <- portfolio_timeseries(S, k = 22, wLength = 3000)
+ts_monthly_2500 <- portfolio_timeseries(S, k = 22, wLength = 2500)
 ts_quarterly <- portfolio_timeseries(S, k = 63, wLength = 3000)
-ts_yearly <- portfolio_timeseries(S, k = 252, wLength = 3000)
+ts_quarterly_2500 <- portfolio_timeseries(S, k = 63, wLength = 2500)
+ts_anually <- portfolio_timeseries(S, k = 252, wLength = 3000)
+ts_anually_2500 <- portfolio_timeseries(S, k = 252, wLength = 2500)
 
-write.table(ts_yearly$portfolio.weights,
-           file = "anually.csv",
-           row.names = FALSE,
-           sep = ",",
-           quote = FALSE)
+ts_balanced <- apply(100*S[2500:3408,], MARGIN = 1, FUN = sum)
 
-write.table(ts_yearly$ts,
-            file = "anually.csv",
-            row.names = FALSE,
-            col.names = "ts_yearly$ts",
-            sep = ",",
-            quote = FALSE, append = TRUE)
+#ts_temp <- read.csv("C:\\Users\\Isaac\\Desktop\\ts_temp.csv", header = TRUE, sep = ",")
+#weights_temp <- read.csv("C:\\Users\\Isaac\\Desktop\\qs_temp.csv", header = TRUE, sep = "\t")
+#dates_temp <- read.csv("C:\\Users\\Isaac\\Desktop\\days_temp.csv", header = TRUE, sep = ",")
 
-write.table(ts_yearly$rebalance.days,
-            file = "anually.csv",
-            row.names = FALSE,
-            col.names = "ts_yearly$rebalance.days",
-            sep = ",",
-            quote = FALSE, append = TRUE)
+#ts_monthly_2500 = list("ts" = c(unlist(unname(ts_temp))), "portfolio.weights" = weights_temp, "rebalance.days" = c(unlist(unname(dates_temp))))
+
+# 
+# write.table(ts_anually_2500$portfolio.weights,
+#            file = "timeseries_results/anually_2500.csv",
+#            row.names = FALSE,
+#            sep = ",",
+#            quote = FALSE)
+# 
+# write.table(ts_anually_2500$ts,
+#             file = "timeseries_results/anually_2500.csv",
+#             row.names = FALSE,
+#             col.names = "ts_anually$ts",
+#             sep = ",",
+#             quote = FALSE, append = TRUE)
+# 
+# write.table(ts_anually_2500$rebalance.days,
+#             file = "timeseries_results/anually_2500.csv",
+#             row.names = FALSE,
+#             col.names = "ts_anually$rebalance.days",
+#             sep = ",",
+#             quote = FALSE, append = TRUE)
+
+#Plot of all porfolio time series
+plot(ts_anually_2500$ts, 
+     type = "l",
+     main = "Anual Re-balancing",
+     ylim = c(250000, 750000),
+     xlim = c(0, 908),
+     xaxs = "i",
+     ylab = "Portfolio Value ($)",
+     xlab = "Time Since Start (days)",
+     col = "green")
+#lines(ts_anually_2500$ts, col = "red")
+lines(ts_quarterly_2500$ts, col = "blue")
+lines(ts_monthly_2500$ts, col = "red")
+
+lines(ts_balanced, col = "black")
+
+lines(500:907, ts_anually$ts, col = "green", lwd = 3)
+lines(500:907, ts_quarterly$ts, col = "blue", lwd = 3)
+lines(500:906, ts_monthly$ts, col = "red", lwd = 3)
+
+legend("topleft", 
+       legend = c("Portfolio Value", "Rebalance"), 
+       lty = c(1, 5),
+       col = c("green", "black"), 
+       cex = 0.6,
+       bty = "n"
+       )
+
+abline(v = ts_anually_2500$rebalance.days - 2500, lty = 5)
+
+#####
+#FITTING GARCH TO TIME SERIES TO ESTIMATE VARIANCE
+#####
+
+library("rugarch")
+
+Y_balanced <- diff(log(ts_balanced))
+Y_annual <- diff(log(ts_anually_2500$ts))
+Y_quarterly <- diff(log(ts_quarterly_2500$ts))
+Y_monthly <- diff(log(ts_monthly_2500$ts))
+
+gspec.ru <- ugarchspec(mean.model=list(armaOrder=c(0,0)), distribution="std")
+
+garch_annual <- ugarchfit(gspec.ru, Y_annual)
+sigmas_annual <- garch_annual@fit$sigma 
+
+garch_quarterly <- ugarchfit(gspec.ru, Y_quarterly)
+sigmas_quarterly <- garch_quarterly@fit$sigma 
+
+garch_monthly<- ugarchfit(gspec.ru, Y_monthly)
+sigmas_monthly <- garch_monthly@fit$sigma 
+
+garch_balanced <- ugarchfit(gspec.ru, Y_balanced)
+sigmas_balanced <- garch_balanced@fit$sigma 
+
+######
+#Fitting with n=2000 for portfolio forecast
+#####
+for(i in 1:3){
+  if(i == 1){
+    ts_monthly_2500_2000 <- portfolio_timeseries(S, k = 22, wLength = 2500)
+  }else if (i == 2){
+    ts_quarterly_2500_2000 <- portfolio_timeseries(S, k = 63, wLength = 2500)
+  }else if (i ==3){
+    ts_anually_2500_2000 <- portfolio_timeseries(S, k = 252, wLength = 2500)
+  }
+}
+
+#ts_bi_monthly_2500_2000 <- portfolio_timeseries(S, k = 44, wLength = 2500)
+
+Y_annual <- diff(log(ts_anually_2500_2000$ts))
+Y_quarterly <- diff(log(ts_quarterly_2500_2000$ts))
+Y_monthly <- diff(log(ts_monthly_2500_2000$ts))
+
+gspec.ru <- ugarchspec(mean.model=list(armaOrder=c(0,0)), distribution="std")
+
+garch_annual <- ugarchfit(gspec.ru, Y_annual)
+sigmas_annual <- garch_annual@fit$sigma 
+
+garch_quarterly <- ugarchfit(gspec.ru, Y_quarterly)
+sigmas_quarterly <- garch_quarterly@fit$sigma 
+
+garch_monthly<- ugarchfit(gspec.ru, Y_monthly)
+sigmas_monthly <- garch_monthly@fit$sigma 
+
 
