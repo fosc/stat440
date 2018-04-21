@@ -1,15 +1,9 @@
-#require(testthat)
-#library(fitdistrplus)
-#library(MASS)
 library(mvtnorm)
 library(qqtest)
 source("CoreCode.R")
 
 #TEST normalize      
 #NUMERICALLY: Check that that E(x) ~= 0 and Var(x) ~= 1 for residuals converted to N(0,1)
-mu = 0
-sig = 1
-
 generate_normalized_data <- function(){
   
   n <- round(runif(1, min = 2000, max = 5200))
@@ -38,9 +32,6 @@ test_normalize <- function(){
 
   print(normalize_test_results)
 }
-
-test_normalize()
-
 
 #TESTING studentize      
 #VISUALLY: Check that studentized data could reasonably fits a student-t distribution using qqplot
@@ -76,32 +67,27 @@ test_studentize <- function(){
   
 }
 
-test_studentize()
-
 #TESTING k_trajectories      
 #VISUALLY: Check that distribution of k-trajectories reasonably fits a student t distribution
-
-snp500 <- read.csv("snp500-adj_close_2004-2018.csv", header = TRUE)
-S <- subset(snp500, select = -Date)
-#Y <- diff(log(as.matrix(S)))
-
 generate_k_trajectories <- function(){
   
+  snp500 <- read.csv("snp500-adj_close_2004-2018.csv", header = TRUE)
+  S <- subset(snp500, select = -Date)
+  
   n <- round(runif(1, min = 2, max = 45))
-  print(n)
+  #print(n)
   subset_assets <- sample(seq(1:45), 4, replace = FALSE)
   S_sub <- S[, subset_assets]
   Y <- diff(log(as.matrix(S_sub)))
   
   k <- round(runif(1, min = 2, max = 252))
-  print(k)
+  #print(k)
   params <- getParams(Y, k)
   
   k_traj <- t(replicate(1000, 
                         k_trajectories(S = S_sub, params = params, k = k, as_percentage = FALSE), 
                         simplify = "vector"))
 
-  #print(head(S_sub))
   results <- list("trajectories" = k_traj, "params" = params)
   return(results)
 }
@@ -109,16 +95,15 @@ generate_k_trajectories <- function(){
 test_k_trajectories <- function(){
   
   traj.params <- generate_k_trajectories()
+  print(traj.params)
   dfs <- traj.params$params$df
-  trajectories <-  traj.params$trajectories
+  trajectories <- traj.params$trajectories
   n_samples <- dim(trajectories)[1]
   
   par(mfrow=c(2, 2))
   
-  #print(df)
-  
   for (col in 1:4){
-    data_i <- trajectories[, col]
+    data_i <- unlist(trajectories[, col])
     df <- dfs[col]
     asset_name <- colnames(trajectories)[col]
     qqtest(data_i,
@@ -130,23 +115,15 @@ test_k_trajectories <- function(){
 
 }
 
-test_k_trajectories()
-
-
 #TESTING portfolio_k_forecast_distribution function       
 # NUMERICALLY: test that prediction mean returns for individual assets are consistent,
-#i.e check that they are within a reasonable tolerance.
-
+#i.e check that percentage difference in two seperate .
 generate_portfolio_forecast <- function(){
+
+  snp500 <- read.csv("snp500-adj_close_2004-2018.csv", header = TRUE)
+  S <- subset(snp500, select = -Date)
   
-  # n <- round(runif(1, min = 2, max = 5))
-  # print(n)
-  # subset_assets <- sample(seq(1:45), n, replace = FALSE)
-  # S_sub <- S[, subset_assets]
   Y <- diff(log(as.matrix(S)))
-  
-  #k <- round(runif(1, min = 2, max = 22))
-  #print(k)
   k <- 22
   params <- getParams(Y, k)
   
@@ -154,23 +131,14 @@ generate_portfolio_forecast <- function(){
                           portfolio_k_forecast_distribution(P = S, k = k)$mu, 
                           simplify = "vector"))
   
-  abs(diff(portfolio_forecasts))
-  
-  return()
+  max_means <- apply(portfolio_forecasts, MARGIN = 2, FUN = max)
+  return(abs(diff(portfolio_forecasts))/max_means)
 }
-
-
-generate_portfolio_forecast()
 
 test_portfolio_forecast <- function(){
   
-  portfolio_means <- replicate(10, generate_portfolio_forecast(), simplify = "vector")
+  portfolio_means <- generate_portfolio_forecast()
   
-  print(portfolio_means)
-  
-  #diff_abs <- abs(diff(portfolio_means))
-  
-  #print(diff_abs)
+  return(max(portfolio_means))
 }
 
-monthly_mu_constency_test <- test_portfolio_forecast()

@@ -1,5 +1,5 @@
-#install.packages("rugarch")
 library(rugarch)
+library(mvtnorm)
 
 #' fitGarch
 #' @param Y Matrix of daily log differences in asset prices.
@@ -44,8 +44,6 @@ normalize <- function(x){
   n = length(x)
   x = x[1:(n-1)]
   z <- qnorm(pt(x, df = df))
-  #qqnorm(z)
-  #qqline(z, col = 2, lwd = 2, lty = 2)
   return(z)
 }
 
@@ -60,14 +58,6 @@ getParams <- function(Y,k){
   params = list("COR"=COR, "df" = GARCH$df, "mu" = GARCH$mu, "sigma" = GARCH$sigma, "COV"=COV )
   return(params)
 }
-
-
-
-# suppose we want to generate a k day trajectory
-# then we need start by generating our normalized model errors
-# we need k of them. Lets pretend k=10
-options(digits=4)
-library(mvtnorm)
 
 
 #' normalize
@@ -86,33 +76,6 @@ studentize <- function(Z,df){
   return(apply(Z,2,fnhelper))
   
 }
-
-basictest <- function(){
-  snp500 = read.csv("snp500-adj_close_2004-2018.csv", header = TRUE)
-  S<- as.matrix(subset(snp500, select = - c(Date, VIX)))
-  
-  Y <- diff(log(S))
-  
-  params = getParams(Y,k)
-  
-  z_10 <- rmvnorm(10,mean=rep(0,46),sigma=params$COV)
-
-  #now we need to convert these error terms into student t error terms
-  z_10_t = studentize(z_10, params$df)
-  
-  y_10 = params$mu + t(t(z_10_t)*params$sigma)
-  
-  #log returns become simple returns (i.e. the percentage of previous return)
-  #now we want to calculate the price of the assets ten days from now
-  
-  S_10 = apply(exp(y_10),2,prod) *S[dim(S)[1],]
-  
-  returns = S_10-S[dim(S)[1],]
-  
-  plot(returns, type='n')
-  text(1:46, returns, colnames(S))
-}
-
 
 #' K trajectories
 #' @param S Matrix of asset prices. Assumed that each column name is the name of the asset in that column.
@@ -187,8 +150,6 @@ portfolio_k_forecast_distribution <- function(P,k, q=NULL, n = 2000, plot_hist =
   num_assets <- dim(P)[2]
   s_t = unlist(P[num_timesteps, ]) 
   
-  #print(params$df)
-  
   #Produces n forecasts of length k as matrix with asset names as columns
   #and each row being one of the n forecasts
   returns <- t(replicate(n, 
@@ -200,18 +161,6 @@ portfolio_k_forecast_distribution <- function(P,k, q=NULL, n = 2000, plot_hist =
                     ncol = num_assets, 
                     nrow = n, 
                     dimnames = list(NULL,colnames(returns)))
-  
- # hist(returns[,1], breaks = "FD", probability = TRUE, ylim = c(0, 0.4))
- # lines(seq(-10, 10, length.out = n),
- #        dt(seq(-10, 10, length.out = n), df = params$df[1]), col = "blue")
- #print(params$df[1])
- 
- #qqtest(data = returns[,1], dist = "student", df = params$df[1], main = "Student t test")
- #qqtest(data = returns[,1], dist = "normal", main = "Normal test")
- # lines(seq(-10, 10, length.out = n),
- #       dt(seq(-10, 10, length.out = n), df = 1), col = "green")
- # lines(seq(-10, 10, length.out = n),
- #        dnorm(seq(-10, 10, length.out = n)), col = "red")
 
   mu_returns <- apply(returns, 2, mean)
   Sigma_returns <- cov(returns)
@@ -247,21 +196,16 @@ predict_q <- function(S, k, value){
   i_today = dim(S)[1]
   today = as.vector(S[i_today,])
   
-  
   forcast <- portfolio_k_forecast_distribution(S,k)
   sigma <- forcast$Sigma
   mu <- forcast$mu
   
   q_unscaled <- as.vector(solve(sigma)%*%mu)
   
-  #lambda <- value/(t(mu)%*%sigma%*%mu)
-  
   cost <- (q_unscaled %*% today)
   scale <- value/cost
   
   q <- c(scale)*q_unscaled
-  
-  #print(q)
   
   return(q)
 }

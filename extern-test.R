@@ -15,13 +15,12 @@ qqtest_student_test <- function(){
   data_uniform <- runif(n = 1000)
   
   
-  qqtest(data = data_t, dist = "student", df = df, main = "Student t test")
+  qqtest(data = data_t, dist = "student", df = df, main = "Student t test", 
+         xlab = paste("Student t(", round(df, 2), ") quantiles"))
   qqtest(data = data_norm, dist = "normal", main = "Normal test")
   qqtest(data = data_exp, dist = "exponential", df = df, main = "Exponential test")
   qqtest(data = data_uniform, dist = "uniform", main = "Uniform test")
 }
-
-qqtest_student_test()
 
 #TEST rvmnorm from mvtnorm
 #NUMERICAL: Check that 100,000 multivariate normal samples approach a specified mean and variance
@@ -38,17 +37,13 @@ rmvnorm_test <- function(){
   return(results)
 }
 
-rmvnorm_test()
-
-
 #TEST ugarchfit from rugarch
 #VISUAL: Check that residuals of GARCH(1,1) model match theoretical student t distribution using a
 #qqplot and density plot.
-
-snp500 = read.csv("snp500-adj_close_2004-2018.csv", header = TRUE)
-S <- as.matrix(subset(snp500, select = - c(Date, VIX, GSPC)))
-
 ugarchfit_test <- function(){
+  
+  snp500 <- read.csv("snp500-adj_close_2004-2018.csv", header = TRUE)
+  S <- subset(snp500, select = -Date)
   
   n <- round(runif(1, min = 1, max = 45))
   s <- S[, n]
@@ -60,5 +55,3 @@ ugarchfit_test <- function(){
   plot(garch_fit)
   
 }
-
-ugarchfit_test()
